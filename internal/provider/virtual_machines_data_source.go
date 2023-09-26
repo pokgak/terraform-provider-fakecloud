@@ -26,11 +26,11 @@ type virtualMachinesDataSource struct {
 
 // virtualMachinesDataSourceModel maps the data source schema data.
 type virtualMachinesDataSourceModel struct {
-	VirtualMachine []virtualMachinesModel `tfsdk:"virtual_machines"`
+	VirtualMachines []virtualMachineModel `tfsdk:"virtual_machines"`
 }
 
-// coffeesModel maps coffees schema data.
-type virtualMachinesModel struct {
+// virtualMachineModel maps coffees schema data.
+type virtualMachineModel struct {
 	ID           types.Int64  `tfsdk:"id"`
 	Name         types.String `tfsdk:"name"`
 	InstanceType types.String `tfsdk:"instance_type"`
@@ -62,17 +62,24 @@ func (d *virtualMachinesDataSource) Configure(_ context.Context, req datasource.
 // Schema defines the schema for the data source.
 func (d *virtualMachinesDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Attributes: map[string]schema.Attribute{
-			"id": schema.Int64Attribute{
-				Computed: true,
-			},
-			"name": schema.StringAttribute{
-				Computed: true,
-			},
-			"instance_type": schema.StringAttribute{
-				Computed: true,
-			},
-		},
+        Attributes: map[string]schema.Attribute{
+            "virtual_machines": schema.ListNestedAttribute{
+                Computed: true,
+                NestedObject: schema.NestedAttributeObject{
+                    Attributes: map[string]schema.Attribute{
+                        "id": schema.Int64Attribute{
+                            Computed: true,
+                        },
+                        "name": schema.StringAttribute{
+                            Computed: true,
+                        },
+                        "instance_type": schema.StringAttribute{
+                            Computed: true,
+                        },
+                    },
+                },
+            },
+        },
 	}
 }
 
@@ -91,13 +98,13 @@ func (d *virtualMachinesDataSource) Read(ctx context.Context, req datasource.Rea
 
 	// Map response body to model
 	for _, vm := range vms {
-		vmState := virtualMachinesModel{
+		vmState := virtualMachineModel{
 			ID:           types.Int64Value(int64(vm.ID)),
 			Name:         types.StringValue(vm.Name),
 			InstanceType: types.StringValue(vm.InstanceType),
 		}
 
-		state.VirtualMachine = append(state.VirtualMachine, vmState)
+		state.VirtualMachines = append(state.VirtualMachines, vmState)
 	}
 
 	// Set state

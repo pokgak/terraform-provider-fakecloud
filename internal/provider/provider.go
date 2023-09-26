@@ -77,23 +77,23 @@ func (p *FakecloudProvider) Configure(ctx context.Context, req provider.Configur
 		)
 	}
 
-	if config.Username.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("username"),
-			"Unknown Fakecloud API Username",
-			"The provider cannot create the Fakecloud API client as there is an unknown configuration value for the Fakecloud API username. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the FAKECLOUD_USERNAME environment variable.",
-		)
-	}
+	// if config.Username.IsUnknown() {
+	// 	resp.Diagnostics.AddAttributeError(
+	// 		path.Root("username"),
+	// 		"Unknown Fakecloud API Username",
+	// 		"The provider cannot create the Fakecloud API client as there is an unknown configuration value for the Fakecloud API username. "+
+	// 			"Either target apply the source of the value first, set the value statically in the configuration, or use the FAKECLOUD_USERNAME environment variable.",
+	// 	)
+	// }
 
-	if config.Password.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("password"),
-			"Unknown Fakecloud API Password",
-			"The provider cannot create the Fakecloud API client as there is an unknown configuration value for the Fakecloud API password. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the FAKECLOUD_PASSWORD environment variable.",
-		)
-	}
+	// if config.Password.IsUnknown() {
+	// 	resp.Diagnostics.AddAttributeError(
+	// 		path.Root("password"),
+	// 		"Unknown Fakecloud API Password",
+	// 		"The provider cannot create the Fakecloud API client as there is an unknown configuration value for the Fakecloud API password. "+
+	// 			"Either target apply the source of the value first, set the value statically in the configuration, or use the FAKECLOUD_PASSWORD environment variable.",
+	// 	)
+	// }
 
 	if resp.Diagnostics.HasError() {
 		return
