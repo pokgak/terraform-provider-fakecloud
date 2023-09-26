@@ -1,6 +1,6 @@
-module github.com/hashicorp/terraform-provider-scaffolding-framework
+module terraform-provider-fakecloud
 
-go 1.19
+go 1.21.1
 
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.16.0
@@ -8,6 +8,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.19.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-testing v1.5.1
+	github.com/pokgak/fakecloud/sdk v0.0.0-20230926154923-73097e016d8a
 )
 
 require (
