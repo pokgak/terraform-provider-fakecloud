@@ -131,25 +131,25 @@ func (p *FakecloudProvider) Configure(ctx context.Context, req provider.Configur
 		)
 	}
 
-	if username == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("username"),
-			"Missing Fakecloud API Username",
-			"The provider cannot create the Fakecloud API client as there is a missing or empty value for the Fakecloud API username. "+
-				"Set the username value in the configuration or use the FAKECLOUD_USERNAME environment variable. "+
-				"If either is already set, ensure the value is not empty.",
-		)
-	}
+	// if username == "" {
+	// 	resp.Diagnostics.AddAttributeError(
+	// 		path.Root("username"),
+	// 		"Missing Fakecloud API Username",
+	// 		"The provider cannot create the Fakecloud API client as there is a missing or empty value for the Fakecloud API username. "+
+	// 			"Set the username value in the configuration or use the FAKECLOUD_USERNAME environment variable. "+
+	// 			"If either is already set, ensure the value is not empty.",
+	// 	)
+	// }
 
-	if password == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("password"),
-			"Missing Fakecloud API Password",
-			"The provider cannot create the Fakecloud API client as there is a missing or empty value for the Fakecloud API password. "+
-				"Set the password value in the configuration or use the FAKECLOUD_PASSWORD environment variable. "+
-				"If either is already set, ensure the value is not empty.",
-		)
-	}
+	// if password == "" {
+	// 	resp.Diagnostics.AddAttributeError(
+	// 		path.Root("password"),
+	// 		"Missing Fakecloud API Password",
+	// 		"The provider cannot create the Fakecloud API client as there is a missing or empty value for the Fakecloud API password. "+
+	// 			"Set the password value in the configuration or use the FAKECLOUD_PASSWORD environment variable. "+
+	// 			"If either is already set, ensure the value is not empty.",
+	// 	)
+	// }
 
 	if resp.Diagnostics.HasError() {
 		return
@@ -178,7 +178,9 @@ func (p *FakecloudProvider) Resources(ctx context.Context) []func() resource.Res
 }
 
 func (p *FakecloudProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return nil
+	return []func() datasource.DataSource {
+        NewVirtualMachinesDataSource,
+    }
 }
 
 func New(version string) func() provider.Provider {
