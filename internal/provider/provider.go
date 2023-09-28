@@ -178,9 +178,10 @@ func (p *FakecloudProvider) Resources(ctx context.Context) []func() resource.Res
 }
 
 func (p *FakecloudProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource {
-        NewVirtualMachinesDataSource,
-    }
+	return []func() datasource.DataSource{
+		NewVirtualMachinesDataSource,
+		NewVirtualMachineDataSource,
+	}
 }
 
 func New(version string) func() provider.Provider {
