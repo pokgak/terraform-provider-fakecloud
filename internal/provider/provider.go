@@ -174,7 +174,9 @@ func (p *FakecloudProvider) Configure(ctx context.Context, req provider.Configur
 }
 
 func (p *FakecloudProvider) Resources(ctx context.Context) []func() resource.Resource {
-	return nil
+	return []func() resource.Resource{
+		NewVirtualMachineResource,
+	}
 }
 
 func (p *FakecloudProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
