@@ -156,16 +156,16 @@ func (p *FakecloudProvider) Configure(ctx context.Context, req provider.Configur
 	}
 
 	// Create a new Fakecloud client using the configuration values
-	client := fakecloud.NewClient(host, username, password)
-	// if err != nil {
-	// 	resp.Diagnostics.AddError(
-	// 		"Unable to Create Fakecloud API Client",
-	// 		"An unexpected error occurred when creating the Fakecloud API client. "+
-	// 			"If the error is not clear, please contact the provider developers.\n\n"+
-	// 			"Fakecloud Client Error: "+err.Error(),
-	// 	)
-	// 	return
-	// }
+	client, err := fakecloud.NewClient(host, username, password)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Create Fakecloud API Client",
+			"An unexpected error occurred when creating the Fakecloud API client. "+
+				"If the error is not clear, please contact the provider developers.\n\n"+
+				"Fakecloud Client Error: "+err.Error(),
+		)
+		return
+	}
 
 	// Make the Fakecloud client available during DataSource and Resource
 	// type Configure methods.
