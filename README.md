@@ -50,3 +50,11 @@ In order to run the full suite of Acceptance tests, run `make testacc`.
 ```shell
 make testacc
 ```
+
+## Making a new release
+
+```
+$ set -x GPG_TTY (tty)
+$ set -x GITHUB_TOKEN (gh auth token)
+$ goreleaser release --clean
+```
