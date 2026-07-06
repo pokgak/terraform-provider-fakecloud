@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.3.0 (unreleased)
+## v0.3.0 (2026-07-06)
 
 Complete rework: fakecloud is now a Terraform learning playground built
 around one primitive — a tic-tac-toe board.
