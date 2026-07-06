@@ -1,60 +1,60 @@
-# Terraform Provider Fakecloud
+# terraform-provider-fakecloud
 
-Terraform provider for learning purposes only. To be used with my [Fakecloud API](https://github.com/pokgak/fakecloud) implementation.
+The Terraform provider for [fakecloud](https://github.com/pokgak/fakecloud) —
+a pretend cloud for **learning Terraform on a tic-tac-toe board**. Every mark
+on the board is a resource, and fakecloud's live dashboard shows every
+`apply`, `destroy`, and drift event as it happens.
 
-## Requirements
+Published on the registry as
+[`pokgak/fakecloud`](https://registry.terraform.io/providers/pokgak/fakecloud/latest).
 
-- [Terraform](https://developer.hashicorp.com/terraform/downloads) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.19
+```terraform
+terraform {
+  required_providers {
+    fakecloud = {
+      source = "pokgak/fakecloud"
+    }
+  }
+}
 
-## Building The Provider
-
-1. Clone the repository
-1. Enter the repository directory
-1. Build the provider using the Go `install` command:
-
-```shell
-go install
+provider "fakecloud" {
+  # Create a playground on the fakecloud website and paste its id here —
+  # the dashboard's "Connect Terraform" panel shows the exact block.
+  sandbox = "your-sandbox-id"
+}
 ```
 
-## Adding Dependencies
+## Resources & data sources
 
-This provider uses [Go modules](https://github.com/golang/go/wiki/Modules).
-Please see the Go documentation for the most up to date information about using Go modules.
+- `fakecloud_tictactoe_board` (resource + data source) — a board; `mode` is
+  `freeplay` (default) or `duel` (server-refereed: X starts, turns
+  alternate, locks on a win). Computed `cells`, `next_player`, `winner`,
+  `nameplate_text`.
+- `fakecloud_tictactoe_move` — a mark on a board: create = play,
+  destroy = take it back, importable by id.
+- `fakecloud_nameplate` — a plaque on a board (one per board); `text`
+  updates in place.
 
-To add a new dependency `github.com/author/dependency` to your Terraform provider:
+The full learning course — six chapters of missions taught on this one
+primitive, from resource basics through `count` footguns, drift, modules,
+shared state, and the dependency graph — lives in the
+[fakecloud repo](https://github.com/pokgak/fakecloud).
 
-```shell
-go get github.com/author/dependency
-go mod tidy
+## Development
+
+Requirements: [Go](https://golang.org/doc/install) >= 1.24.
+
+```sh
+go build -o ~/go/bin/terraform-provider-fakecloud .
 ```
 
-Then commit the changes to `go.mod` and `go.sum`.
+Use a [dev override](https://developer.hashicorp.com/terraform/cli/config/config-file#development-overrides)
+to point Terraform at your local build, and run the fakecloud server locally
+with `wrangler dev` (see the fakecloud repo). Regenerate docs after schema
+changes with `go generate ./...`.
 
-## Using the provider
+## Releasing
 
-Fill this in for each provider
-
-## Developing the Provider
-
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
-
-To compile the provider, run `go install`. This will build the provider and put the provider binary in the `$GOPATH/bin` directory.
-
-To generate or update documentation, run `go generate`.
-
-In order to run the full suite of Acceptance tests, run `make testacc`.
-
-*Note:* Acceptance tests create real resources, and often cost money to run.
-
-```shell
-make testacc
-```
-
-## Making a new release
-
-```
-$ set -x GPG_TTY (tty)
-$ set -x GITHUB_TOKEN (gh auth token)
-$ goreleaser release --clean
-```
+Push a semver tag (`git tag v0.3.0 && git push --tags`) and the release
+workflow builds, signs, and publishes GoReleaser-style; the Terraform
+Registry picks the release up automatically.
