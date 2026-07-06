@@ -1,195 +1,106 @@
-// Copyright (c) HashiCorp, Inc.
-// SPDX-License-Identifier: MPL-2.0
-
 package provider
 
 import (
 	"context"
 	"os"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	fakecloud "github.com/pokgak/fakecloud/sdk"
+
+	"github.com/pokgak/terraform-provider-fakecloud/internal/client"
 )
 
-// Ensure the implementation satisfies various provider interfaces.
-var _ provider.Provider = &FakecloudProvider{}
+// DefaultEndpoint is the hosted fakecloud. Point the provider elsewhere
+// (e.g. a local `wrangler dev` on http://localhost:8787) with the endpoint
+// attribute or FAKECLOUD_ENDPOINT.
+const DefaultEndpoint = "https://fakecloud.pokgak.workers.dev"
 
-// FakecloudProvider defines the provider implementation.
-type FakecloudProvider struct {
-	// version is set to the provider version on release, "dev" when the
-	// provider is built and ran locally, and "test" when running acceptance
-	// testing.
+var _ provider.Provider = &fakecloudProvider{}
+
+type fakecloudProvider struct {
 	version string
 }
 
-// ScaffoldingProviderModel describes the provider data model.
-type FakecloudProviderModel struct {
-	Host     types.String `tfsdk:"host"`
-	Username types.String `tfsdk:"username"`
-	Password types.String `tfsdk:"password"`
+func New(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &fakecloudProvider{version: version}
+	}
 }
 
-func (p *FakecloudProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+type providerModel struct {
+	Endpoint types.String `tfsdk:"endpoint"`
+	Sandbox  types.String `tfsdk:"sandbox"`
+}
+
+func (p *fakecloudProvider) Metadata(_ context.Context, _ provider.MetadataRequest, resp *provider.MetadataResponse) {
 	resp.TypeName = "fakecloud"
 	resp.Version = p.version
 }
 
-func (p *FakecloudProvider) Schema(ctx context.Context, req provider.SchemaRequest, resp *provider.SchemaResponse) {
+func (p *fakecloudProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "Manage resources in fakecloud, a pretend cloud for learning Terraform. " +
+			"Create a playground on the fakecloud website, keep its dashboard open, and watch every apply happen live.",
 		Attributes: map[string]schema.Attribute{
-			"host": schema.StringAttribute{
+			"endpoint": schema.StringAttribute{
 				Optional: true,
+				Description: "Base URL of the fakecloud server. Defaults to the FAKECLOUD_ENDPOINT " +
+					"environment variable, then the hosted fakecloud (" + DefaultEndpoint + "). " +
+					"Running locally? `wrangler dev` serves http://localhost:8787.",
 			},
-			"username": schema.StringAttribute{
+			"sandbox": schema.StringAttribute{
 				Optional: true,
-			},
-			"password": schema.StringAttribute{
-				Optional:  true,
-				Sensitive: true,
+				Description: "Your playground id, shown on its dashboard. Falls back to the " +
+					"FAKECLOUD_SANDBOX environment variable. Every learner (and each duel opponent " +
+					"pair) works inside one sandbox; the id is the key, so share it only on purpose.",
 			},
 		},
 	}
 }
 
-func (p *FakecloudProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
-	// Retrieve provider data from configuration
-	var config FakecloudProviderModel
-	diags := req.Config.Get(ctx, &config)
-	resp.Diagnostics.Append(diags...)
+func (p *fakecloudProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
+	var config providerModel
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// If practitioner provided a configuration value for any of the
-	// attributes, it must be a known value.
+	endpoint := config.Endpoint.ValueString()
+	if endpoint == "" {
+		endpoint = os.Getenv("FAKECLOUD_ENDPOINT")
+	}
+	if endpoint == "" {
+		endpoint = DefaultEndpoint
+	}
+	endpoint = strings.TrimRight(endpoint, "/")
 
-	if config.Host.IsUnknown() {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("host"),
-			"Unknown Fakecloud API Host",
-			"The provider cannot create the Fakecloud API client as there is an unknown configuration value for the Fakecloud API host. "+
-				"Either target apply the source of the value first, set the value statically in the configuration, or use the FAKECLOUD_HOST environment variable.",
-		)
+	sandbox := config.Sandbox.ValueString()
+	if sandbox == "" {
+		sandbox = os.Getenv("FAKECLOUD_SANDBOX")
+	}
+	if sandbox != "" {
+		endpoint = endpoint + "/s/" + sandbox
 	}
 
-	// if config.Username.IsUnknown() {
-	// 	resp.Diagnostics.AddAttributeError(
-	// 		path.Root("username"),
-	// 		"Unknown Fakecloud API Username",
-	// 		"The provider cannot create the Fakecloud API client as there is an unknown configuration value for the Fakecloud API username. "+
-	// 			"Either target apply the source of the value first, set the value statically in the configuration, or use the FAKECLOUD_USERNAME environment variable.",
-	// 	)
-	// }
-
-	// if config.Password.IsUnknown() {
-	// 	resp.Diagnostics.AddAttributeError(
-	// 		path.Root("password"),
-	// 		"Unknown Fakecloud API Password",
-	// 		"The provider cannot create the Fakecloud API client as there is an unknown configuration value for the Fakecloud API password. "+
-	// 			"Either target apply the source of the value first, set the value statically in the configuration, or use the FAKECLOUD_PASSWORD environment variable.",
-	// 	)
-	// }
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Default values to environment variables, but override
-	// with Terraform configuration value if set.
-
-	host := os.Getenv("FAKECLOUD_HOST")
-	username := os.Getenv("FAKECLOUD_USERNAME")
-	password := os.Getenv("FAKECLOUD_PASSWORD")
-
-	if !config.Host.IsNull() {
-		host = config.Host.ValueString()
-	}
-
-	if !config.Username.IsNull() {
-		username = config.Username.ValueString()
-	}
-
-	if !config.Password.IsNull() {
-		password = config.Password.ValueString()
-	}
-
-	// If any of the expected configurations are missing, return
-	// errors with provider-specific guidance.
-
-	if host == "" {
-		resp.Diagnostics.AddAttributeError(
-			path.Root("host"),
-			"Missing Fakecloud API Host",
-			"The provider cannot create the Fakecloud API client as there is a missing or empty value for the Fakecloud API host. "+
-				"Set the host value in the configuration or use the FAKECLOUD_HOST environment variable. "+
-				"If either is already set, ensure the value is not empty.",
-		)
-	}
-
-	// if username == "" {
-	// 	resp.Diagnostics.AddAttributeError(
-	// 		path.Root("username"),
-	// 		"Missing Fakecloud API Username",
-	// 		"The provider cannot create the Fakecloud API client as there is a missing or empty value for the Fakecloud API username. "+
-	// 			"Set the username value in the configuration or use the FAKECLOUD_USERNAME environment variable. "+
-	// 			"If either is already set, ensure the value is not empty.",
-	// 	)
-	// }
-
-	// if password == "" {
-	// 	resp.Diagnostics.AddAttributeError(
-	// 		path.Root("password"),
-	// 		"Missing Fakecloud API Password",
-	// 		"The provider cannot create the Fakecloud API client as there is a missing or empty value for the Fakecloud API password. "+
-	// 			"Set the password value in the configuration or use the FAKECLOUD_PASSWORD environment variable. "+
-	// 			"If either is already set, ensure the value is not empty.",
-	// 	)
-	// }
-
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Create a new Fakecloud client using the configuration values
-	client, err := fakecloud.NewClient(host, username, password)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Create Fakecloud API Client",
-			"An unexpected error occurred when creating the Fakecloud API client. "+
-				"If the error is not clear, please contact the provider developers.\n\n"+
-				"Fakecloud Client Error: "+err.Error(),
-		)
-		return
-	}
-
-	// Make the Fakecloud client available during DataSource and Resource
-	// type Configure methods.
-	resp.DataSourceData = client
-	resp.ResourceData = client
+	c := client.New(endpoint)
+	resp.ResourceData = c
+	resp.DataSourceData = c
 }
 
-func (p *FakecloudProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *fakecloudProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewVirtualMachineResource,
+		NewBoardResource,
+		NewMoveResource,
+		NewNameplateResource,
 	}
 }
 
-func (p *FakecloudProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *fakecloudProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewVirtualMachinesDataSource,
-		NewVirtualMachineDataSource,
-	}
-}
-
-func New(version string) func() provider.Provider {
-	return func() provider.Provider {
-		return &FakecloudProvider{
-			version: version,
-		}
+		NewBoardDataSource,
 	}
 }
