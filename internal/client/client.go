@@ -82,14 +82,14 @@ func (c *Client) do(method, path string, body, out any) error {
 	if err != nil {
 		return fmt.Errorf("cannot reach fakecloud at %s: %w (is the server running?)", c.endpoint, err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode >= 400 {
 		var apiErr struct {
 			Error string `json:"error"`
 		}
-		json.NewDecoder(resp.Body).Decode(&apiErr)
-		if apiErr.Error == "" {
+		// A non-JSON error body just falls through to the HTTP status text.
+		if decodeErr := json.NewDecoder(resp.Body).Decode(&apiErr); decodeErr != nil || apiErr.Error == "" {
 			apiErr.Error = resp.Status
 		}
 		return &APIError{StatusCode: resp.StatusCode, Message: apiErr.Error}

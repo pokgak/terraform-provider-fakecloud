@@ -91,7 +91,15 @@ func (r *moveResource) Configure(_ context.Context, req resource.ConfigureReques
 	if req.ProviderData == nil {
 		return
 	}
-	r.client = req.ProviderData.(*client.Client)
+	c, ok := req.ProviderData.(*client.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected provider data",
+			fmt.Sprintf("expected *client.Client, got %T — this is a bug in the provider", req.ProviderData),
+		)
+		return
+	}
+	r.client = c
 }
 
 func (r *moveResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
@@ -154,7 +162,7 @@ func (r *moveResource) Delete(ctx context.Context, req resource.DeleteRequest, r
 }
 
 // ImportState lets you adopt a mark made outside Terraform (e.g. by clicking
-// a cell on the dashboard): terraform import fakecloud_tictactoe_move.NAME ID
+// a cell on the dashboard): terraform import fakecloud_tictactoe_move.NAME ID.
 func (r *moveResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	id, err := strconv.ParseInt(req.ID, 10, 64)
 	if err != nil {

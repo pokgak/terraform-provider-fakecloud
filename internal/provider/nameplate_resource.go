@@ -74,7 +74,15 @@ func (r *nameplateResource) Configure(_ context.Context, req resource.ConfigureR
 	if req.ProviderData == nil {
 		return
 	}
-	r.client = req.ProviderData.(*client.Client)
+	c, ok := req.ProviderData.(*client.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected provider data",
+			fmt.Sprintf("expected *client.Client, got %T — this is a bug in the provider", req.ProviderData),
+		)
+		return
+	}
+	r.client = c
 }
 
 func (r *nameplateResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
