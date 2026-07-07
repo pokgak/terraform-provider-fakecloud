@@ -104,7 +104,15 @@ func (r *boardResource) Configure(_ context.Context, req resource.ConfigureReque
 	if req.ProviderData == nil {
 		return
 	}
-	r.client = req.ProviderData.(*client.Client)
+	c, ok := req.ProviderData.(*client.Client)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected provider data",
+			fmt.Sprintf("expected *client.Client, got %T — this is a bug in the provider", req.ProviderData),
+		)
+		return
+	}
+	r.client = c
 }
 
 func boardToModel(ctx context.Context, board client.Board) (boardModel, error) {

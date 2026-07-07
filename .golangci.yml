@@ -1,27 +1,32 @@
 # Visit https://golangci-lint.run/ for usage documentation
 # and information on other useful linters
+version: "2"
+
 issues:
-  max-per-linter: 0
+  max-issues-per-linter: 0
   max-same-issues: 0
 
 linters:
-  disable-all: true
+  default: none
   enable:
     - durationcheck
     - errcheck
-    - exportloopref
     - forcetypeassert
     - godot
-    - gofmt
-    - gosimple
+    - govet
     - ineffassign
     - makezero
     - misspell
     - nilerr
     - predeclared
-    - staticcheck
-    - tenv
+    - staticcheck # includes the former gosimple
     - unconvert
     - unparam
     - unused
-    - vet
+    - usetesting # replaces the removed tenv
+
+# gofmt is a formatter in golangci-lint v2, not a linter.
+# (exportloopref was dropped: obsolete since Go 1.22's loop variable change.)
+formatters:
+  enable:
+    - gofmt
